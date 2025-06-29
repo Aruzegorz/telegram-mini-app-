@@ -73,6 +73,16 @@
             font-size: 0.9rem;
             color: var(--tg-theme-hint-color, #708499);
         }
+
+        .debug {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-family: monospace;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -91,69 +101,143 @@
         <div class="info" id="info">
             Добро пожаловать в Mini App!
         </div>
+        
+        <div class="debug" id="debug">
+            Инициализация...
+        </div>
     </div>
 
     <script>
-        // Инициализация Telegram Web App
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
+        // Глобальная обработка ошибок
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error('Ошибка:', msg, 'в строке', lineNo);
+            document.getElementById('debug').innerHTML = `Ошибка: ${msg}`;
+            return false;
+        };
 
-        // Устанавливаем цвет заголовка
-        tg.setHeaderColor('secondary_bg_color');
-
+        // Безопасная инициализация Telegram Web App
+        let tg = null;
         let counter = 0;
         const counterElement = document.getElementById('counter');
         const infoElement = document.getElementById('info');
+        const debugElement = document.getElementById('debug');
 
-        // Получаем данные пользователя
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-            infoElement.innerHTML = `Привет, ${user.first_name}! 👋<br>ID: ${user.id}`;
+        try {
+            tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+            
+            debugElement.innerHTML = 'Telegram WebApp загружен ✅';
+            
+            // Безопасное получение данных пользователя
+            const user = tg.initDataUnsafe?.user;
+            if (user) {
+                infoElement.innerHTML = `Привет, ${user.first_name}! 👋<br>ID: ${user.id}`;
+            } else {
+                infoElement.innerHTML = 'Привет! 👋<br>Данные пользователя недоступны';
+            }
+
+            // Безопасная настройка темы
+            try {
+                tg.setHeaderColor('secondary_bg_color');
+            } catch (e) {
+                console.log('Не удалось установить цвет заголовка');
+            }
+
+        } catch (error) {
+            console.error('Ошибка инициализации Telegram WebApp:', error);
+            debugElement.innerHTML = 'Ошибка загрузки Telegram WebApp ❌';
+            tg = null;
         }
 
         function updateCounter() {
-            counterElement.textContent = counter;
-            
-            // Отправляем данные в Telegram
-            tg.sendData(JSON.stringify({
-                action: 'counter_update',
-                value: counter,
-                user_id: user?.id
-            }));
+            try {
+                counterElement.textContent = counter;
+                debugElement.innerHTML = `Счетчик: ${counter} ✅`;
+                
+                // Убираем sendData() чтобы избежать ошибок
+                // Данные можно отправить через веб-хук позже
+                
+            } catch (error) {
+                console.error('Ошибка обновления счетчика:', error);
+                debugElement.innerHTML = `Ошибка: ${error.message}`;
+            }
         }
 
         function increment() {
-            counter++;
-            updateCounter();
-            
-            // Добавляем вибрацию
-            tg.HapticFeedback.impactOccurred('medium');
+            try {
+                counter++;
+                updateCounter();
+                
+                // Безопасное использование вибрации
+                if (tg && tg.HapticFeedback) {
+                    try {
+                        tg.HapticFeedback.impactOccurred('light');
+                    } catch (e) {
+                        console.log('Вибрация недоступна');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Ошибка increment:', error);
+                debugElement.innerHTML = `Ошибка: ${error.message}`;
+            }
         }
 
         function decrement() {
-            counter--;
-            updateCounter();
-            
-            // Добавляем вибрацию
-            tg.HapticFeedback.impactOccurred('medium');
+            try {
+                counter--;
+                updateCounter();
+                
+                // Безопасное использование вибрации
+                if (tg && tg.HapticFeedback) {
+                    try {
+                        tg.HapticFeedback.impactOccurred('light');
+                    } catch (e) {
+                        console.log('Вибрация недоступна');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Ошибка decrement:', error);
+                debugElement.innerHTML = `Ошибка: ${error.message}`;
+            }
         }
 
         function reset() {
-            counter = 0;
-            updateCounter();
-            
-            // Добавляем вибрацию
-            tg.HapticFeedback.notificationOccurred('success');
+            try {
+                counter = 0;
+                updateCounter();
+                
+                // Безопасное использование вибрации
+                if (tg && tg.HapticFeedback) {
+                    try {
+                        tg.HapticFeedback.notificationOccurred('success');
+                    } catch (e) {
+                        console.log('Вибрация недоступна');
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Ошибка reset:', error);
+                debugElement.innerHTML = `Ошибка: ${error.message}`;
+            }
         }
 
-        // Обработка кнопки "Назад"
-        tg.onEvent('backButtonClicked', function() {
-            tg.close();
-        });
+        // Безопасная обработка кнопки "Назад"
+        if (tg) {
+            try {
+                tg.onEvent('backButtonClicked', function() {
+                    tg.close();
+                });
+                tg.BackButton.show();
+            } catch (e) {
+                console.log('Не удалось настроить кнопку Назад');
+            }
+        }
 
-        // Показываем кнопку "Назад"
-        tg.BackButton.show();
+        // Инициализация счетчика
+        updateCounter();
     </script>
 </body>
 </html>
