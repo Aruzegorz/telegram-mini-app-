@@ -1,159 +1,94 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>QR Generator Mini App</title>
-
-  <!-- Telegram Web Apps SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <!-- QRCode.js -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--tg-theme-bg-color, #fff);
-      color: var(--tg-theme-text-color, #000);
-      padding: 20px;
-      min-height: 100vh;
-      margin: 0;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .tabs {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 20px;
-      gap: 10px;
-    }
-    .tab {
-      padding: 10px 20px;
-      border-radius: 12px;
-      cursor: pointer;
-      background: var(--tg-theme-secondary-bg-color, #f0f0f0);
-      user-select: none;
-      transition: background-color 0.3s;
-    }
-    .tab.active {
-      background: var(--tg-theme-button-color, #0088cc);
-      color: var(--tg-theme-button-text-color, #fff);
-    }
-    .tab-content {
-      display: none;
-      max-width: 400px;
-      margin: 0 auto 20px;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-    input, textarea, select {
-      width: 100%;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      font-size: 1rem;
-      margin-bottom: 15px;
-      box-sizing: border-box;
-      background: var(--tg-theme-bg-color, #fff);
-      color: var(--tg-theme-text-color, #000);
-    }
-    button {
-      width: 100%;
-      padding: 14px;
-      font-size: 1.1rem;
-      border: none;
-      border-radius: 12px;
-      background: var(--tg-theme-button-color, #0088cc);
-      color: var(--tg-theme-button-text-color, #fff);
-      cursor: pointer;
-      transition: opacity 0.3s;
-    }
-    button:hover {
-      opacity: 0.85;
-    }
-    #qr-container {
-      text-align: center;
-      margin-top: 20px;
-      display: none;
-    }
-    canvas {
-      max-width: 100%;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .message {
-      text-align: center;
-      margin-top: 10px;
-      color: green;
-      font-weight: 600;
-      display: none;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <title>Финансовый помощник</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+        input, select, button { padding: 8px; margin: 5px 0; width: 100%; }
+        .transaction { border-bottom: 1px solid #ccc; padding: 5px 0; }
+        .income { color: green; }
+        .expense { color: red; }
+    </style>
 </head>
 <body>
+    <h1>Финансовый помощник</h1>
 
-  <h1>📱 Генератор QR-кодов</h1>
+    <div>
+        <h2>Баланс: <span id="balance">0 ₽</span></h2>
+    </div>
 
-  <div class="tabs">
-    <div class="tab active" data-tab="text">Текст</div>
-    <div class="tab" data-tab="url">Ссылка</div>
-    <div class="tab" data-tab="wifi">Wi-Fi</div>
-    <div class="tab" data-tab="contact">Контакт</div>
-  </div>
+    <div>
+        <h3>Добавить операцию</h3>
+        <select id="type">
+            <option value="income">Доход</option>
+            <option value="expense">Расход</option>
+        </select>
+        <input type="text" id="category" placeholder="Категория" />
+        <input type="number" id="amount" placeholder="Сумма" />
+        <input type="text" id="description" placeholder="Описание (необязательно)" />
+        <button onclick="addTransaction()">Добавить</button>
+    </div>
 
-  <!-- Текст -->
-  <div class="tab-content active" id="text">
-    <label for="text-input">Введите текст</label>
-    <textarea id="text-input" rows="4" placeholder="Любой текст..."></textarea>
-  </div>
+    <div>
+        <h3>История операций</h3>
+        <div id="history"></div>
+    </div>
 
-  <!-- Ссылка -->
-  <div class="tab-content" id="url">
-    <label for="url-input">Введите URL</label>
-    <input type="url" id="url-input" placeholder="https://example.com" />
-  </div>
+    <script>
+        // Заглушка для данных (в реальном приложении - запрос к серверу)
+        let transactions = [];
 
-  <!-- Wi-Fi -->
-  <div class="tab-content" id="wifi">
-    <label for="wifi-ssid">Название сети (SSID)</label>
-    <input type="text" id="wifi-ssid" placeholder="MyWiFi" />
-    <label for="wifi-password">Пароль</label>
-    <input type="text" id="wifi-password" placeholder="password123" />
-    <label for="wifi-security">Тип безопасности</label>
-    <select id="wifi-security">
-      <option value="WPA">WPA/WPA2</option>
-      <option value="WEP">WEP</option>
-      <option value="nopass">Без пароля</option>
-    </select>
-  </div>
+        function updateBalance() {
+            let balance = 0;
+            transactions.forEach(t => {
+                balance += t.type === 'income' ? t.amount : -t.amount;
+            });
+            document.getElementById('balance').textContent = balance.toFixed(2) + ' ₽';
+        }
 
-  <!-- Контакт -->
-  <div class="tab-content" id="contact">
-    <label for="contact-name">Имя</label>
-    <input type="text" id="contact-name" placeholder="Иван Иванов" />
-    <label for="contact-phone">Телефон</label>
-    <input type="tel" id="contact-phone" placeholder="+7 900 123-45-67" />
-    <label for="contact-email">Email</label>
-    <input type="email" id="contact-email" placeholder="ivan@example.com" />
-  </div>
+        function renderHistory() {
+            const historyDiv = document.getElementById('history');
+            historyDiv.innerHTML = '';
+            transactions.slice().reverse().forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'transaction ' + t.type;
+                div.textContent = `${t.type === 'income' ? '+' : '-'}${t.amount.toFixed(2)} ₽ [${t.category}] ${t.description || ''}`;
+                historyDiv.appendChild(div);
+            });
+        }
 
-  <button id="generate-btn">Создать QR-код</button>
+        function addTransaction() {
+            const type = document.getElementById('type').value;
+            const category = document.getElementById('category').value.trim();
+            const amount = parseFloat(document.getElementById('amount').value);
+            const description = document.getElementById('description').value.trim();
 
-  <div id="qr-container">
-    <canvas id="qr-canvas"></canvas>
-  </div>
+            if (!category) {
+                alert('Введите категорию');
+                return;
+            }
+            if (isNaN(amount) || amount <= 0) {
+                alert('Введите корректную сумму');
+                return;
+            }
 
-  <div class="message" id="success-message">QR-код успешно создан! ✅</div>
+            transactions.push({ type, category, amount, description });
+            updateBalance();
+            renderHistory();
 
-  <script>
-    // Инициализация Telegram WebApp
+            // Очистка полей
+            document.getElementById('category').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('description').value = '';
+        }
+
+        // Инициализация
+        updateBalance();
+        renderHistory();
+    </script>
+</body>
+</html>
+
+
 
