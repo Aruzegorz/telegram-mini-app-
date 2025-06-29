@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Счетчик Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 300px;
+            width: 100%;
+        }
+
+        .counter {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 30px 0;
+            color: var(--tg-theme-accent-text-color, #0088cc);
+        }
+
+        .button {
+            background: var(--tg-theme-button-color, #0088cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            border-radius: 12px;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 10px;
+            transition: opacity 0.2s;
+            min-width: 80px;
+        }
+
+        .button:hover {
+            opacity: 0.8;
+        }
+
+        .button:active {
+            opacity: 0.6;
+        }
+
+        .title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--tg-theme-text-color, #000000);
+        }
+
+        .info {
+            margin-top: 30px;
+            padding: 15px;
+            background: var(--tg-theme-secondary-bg-color, #f8f9fa);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            color: var(--tg-theme-hint-color, #708499);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🎯 Счетчик</h1>
+        
+        <div class="counter" id="counter">0</div>
+        
+        <div>
+            <button class="button" onclick="decrement()">➖</button>
+            <button class="button" onclick="increment()">➕</button>
+        </div>
+        
+        <button class="button" onclick="reset()" style="margin-top: 20px;">🔄 Сброс</button>
+        
+        <div class="info" id="info">
+            Добро пожаловать в Mini App!
+        </div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        // Устанавливаем цвет заголовка
+        tg.setHeaderColor('secondary_bg_color');
+
+        let counter = 0;
+        const counterElement = document.getElementById('counter');
+        const infoElement = document.getElementById('info');
+
+        // Получаем данные пользователя
+        const user = tg.initDataUnsafe?.user;
+        if (user) {
+            infoElement.innerHTML = `Привет, ${user.first_name}! 👋<br>ID: ${user.id}`;
+        }
+
+        function updateCounter() {
+            counterElement.textContent = counter;
+            
+            // Отправляем данные в Telegram
+            tg.sendData(JSON.stringify({
+                action: 'counter_update',
+                value: counter,
+                user_id: user?.id
+            }));
+        }
+
+        function increment() {
+            counter++;
+            updateCounter();
+            
+            // Добавляем вибрацию
+            tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function decrement() {
+            counter--;
+            updateCounter();
+            
+            // Добавляем вибрацию
+            tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function reset() {
+            counter = 0;
+            updateCounter();
+            
+            // Добавляем вибрацию
+            tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        // Обработка кнопки "Назад"
+        tg.onEvent('backButtonClicked', function() {
+            tg.close();
+        });
+
+        // Показываем кнопку "Назад"
+        tg.BackButton.show();
+    </script>
+</body>
+</html>
